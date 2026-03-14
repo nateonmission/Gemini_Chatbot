@@ -4,6 +4,10 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from prompts import system_prompt
+from call_functions import available_functions
+
+
 def main():
     load_dotenv()
 
@@ -16,6 +20,7 @@ def main():
     client = genai.Client(api_key=api_key)
     print("Hello from ai-agent!")
 
+
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
@@ -24,7 +29,13 @@ def main():
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
    
     parser = argparse.ArgumentParser(description="Chatbot")
-    res = client.models.generate_content(model='gemini-2.5-flash', contents=messages)
+    res = client.models.generate_content(
+        model='gemini-2.5-flash', 
+        contents=messages, 
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        ),
+    )
     tokens_prompt = res.usage_metadata.prompt_token_count
     tokens_response = res.usage_metadata.candidates_token_count
     
@@ -33,6 +44,9 @@ def main():
         print(f"Prompt tokens: {tokens_prompt}")
         print(f"Response tokens: {tokens_response}")
     print(f"Response: \n{res.text}")
+    if res.function_calls is not None:
+        for call in res.function_calls:
+            print(f"calling Function: {call.name}({call.args})")
 
 
 
