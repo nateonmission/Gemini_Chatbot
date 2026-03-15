@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 
 from prompts import system_prompt
-from call_functions import available_functions
+from functions.call_functions import available_functions, call_function
 
 
 def main():
@@ -43,11 +43,25 @@ def main():
         print(f"User prompt: {args.user_prompt}")
         print(f"Prompt tokens: {tokens_prompt}")
         print(f"Response tokens: {tokens_response}")
-    print(f"Response: \n{res.text}")
+    # print(f"Response: \n{res.text}")
+    func_result_list = []
     if res.function_calls is not None:
         for call in res.function_calls:
             print(f"calling Function: {call.name}({call.args})")
-
+            function_call_result = call_function(call, verbose=args.verbose)
+            if len(function_call_result.parts) == 0:
+                raise Exception("Error: Received no parts from function_call_result")
+            
+            if call is None:
+                raise Exception(f"Error: Received NONE from {call.name}")
+            func_result_list.append(function_call_result.parts[0])
+            
+            
+            if call.args.get("verbose"):
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+    for func_res in func_result_list:
+        print(f"{func_res = }")
+            
 
 
 if __name__ == "__main__":
